@@ -22,7 +22,9 @@ Port = int(sys.argv[2])
 server.connect((IP_address, Port))
 
 while True:
+
 	sockets_list = [sys.stdin, server]
+
 	read_sockets,write_socket, error_socket = select.select(sockets_list,[],[])
 
 	for socks in read_sockets:
@@ -30,11 +32,14 @@ while True:
 			message = socks.recv(2048).decode()
 			print (message)
 		else:
-			message =  sys.stdin.readline()
+			message = sys.stdin.readline()
 			server.send(message.encode())
-			sys.stdout.write("<You> ")
+			sys.stdout.write("<You>")
 			sys.stdout.write(message)
 			sys.stdout.flush()
+	if message.lower().strip() == 'bye':
+		break
+print("closing the connection")
 server.close()
 
 
