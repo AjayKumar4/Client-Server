@@ -7,33 +7,74 @@ Created on Thu Nov  2 20:37:59 2017
 """
 
 import socket
+import select
+import sys
+from _thread import *
 
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-def server_program():
-    # get the hostname
-    host = socket.gethostname()
-    port = 5001  # initiate port no above 1024
+# checks whether sufficient arguments have been provided
+if len(sys.argv) != 3:
+	print ("Correct usage: script, IP address, port number")
+	exit()
 
-    server_socket = socket.socket()  # get instance
-    # look closely. The bind() function takes tuple as argument
-    server_socket.bind((host, port))  # bind host address and port together
+# takes the first argument from command prompt as IP address
+IP_address = str(sys.argv[1])
 
-    # configure how many client the server can listen simultaneously
-    server_socket.listen(2)
-    conn, address = server_socket.accept()  # accept new connection
-    print("Connection from: " + str(address))
-    while True:
-        # receive data stream. it won't accept data packet greater than 1024 bytes
-        data = conn.recv(1024).decode()
-        if not data:
-            # if data is not received break
-            break
-        print("from connected user: " + str(data))
-        data = input(' -> ')
-        conn.send(data.encode())  # send data to the client
+# takes second argument from command prompt as port number
+Port = int(sys.argv[2])
+server.bind((IP_address, Port))
+server.listen(100)
 
-    conn.close()  # close the connection
+list_of_clients = []
 
+def clientthread(conn, addr):
+	conn.send("Welcome to this chatroom!\n Start Messaging".encode())
+	while True:
+			try:
+				message = conn.recv(2048).decode()
+				if message:
 
-if __name__ == '__main__':
-    server_program()
+					"""prints the message and address of the
+					user who just sent the message on the server
+					terminal"""
+					print ("<" + addr[0]+":"+ str(addr[1]) + "> " + message)
+
+					# Calls broadcast function to send message to all
+					message_to_send = "<" + addr[0]+":"+ str(addr[1])  + "> " + message
+					broadcast(message_to_send, conn)
+
+				else:
+					remove(conn)
+
+			except:
+				continue
+
+def broadcast(message, connection):
+	for clients in list_of_clients:
+		if clients!=connection:
+			try:
+				clients.send(message.encode())
+			except:
+				clients.close()
+
+				# if the link is broken, we remove the client
+				remove(clients)
+
+def remove(connection):
+	if connection in list_of_clients:
+		list_of_clients.remove(connection)
+
+while True:
+	conn, addr = server.accept()
+	list_of_clients.append(conn)
+
+	# prints the address of the user that just connected
+	print (addr[0] + ":"+ str(addr[1]) +" connected")
+
+	# creates and individual thread for every user that connects
+	start_new_thread(clientthread,(conn,addr))
+
+conn.close()
+server.close()
