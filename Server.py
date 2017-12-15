@@ -24,6 +24,7 @@ IP_address = str(sys.argv[1])
 
 # takes second argument from command prompt as port number
 Port = int(sys.argv[2])
+print("starting up on %s port %s" % (IP_address, Port))
 server.bind((IP_address, Port))
 server.listen(100)
 
